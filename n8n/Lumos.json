@@ -1,0 +1,156 @@
+{
+  "name": "Lumos",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "start",
+        "options": {
+          "allowedOrigins": "*",
+          "binaryPropertyName": "audio",
+          "responseData": "ok"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "ca0b83a3-67fc-468d-bb60-a054e36df584",
+      "name": "Webhook",
+      "webhookId": "27458c7c-ccb4-4f09-bf5a-1c276615ca4e",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Tu es un assistant domotique. Analyse cette commande vocale et retourne UNIQUEMENT un objet JSON valide, sans markdown, sans explication.\\n\\nPièces disponibles et leurs identifiants :\\n- salon (pin 2)\\n- cuisine (pin 6)\\n- chambre_paul (pin 8)\\n- chambre_principale (pin 13)\\n\\nActions possibles : on, off\\n\\nFormat de réponse attendu :\\n{\\\"room\\\": \\\"identifiant_piece\\\", \\\"action\\\": \\\"on\\\" ou \\\"off\\\", \\\"pin\\\": numero_pin}\\n\\nSi la commande est incompréhensible ou ne concerne pas une lumière, retourne :\\n{\\\"error\\\": \\\"commande non reconnue\\\"}\\n\\nCommande vocale : {{ $json.text }}"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        496,
+        -112
+      ],
+      "id": "d9e04136-7e58-4b8b-91f9-293d0abdeacc",
+      "name": "Message a model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "HUiFA50bNXhRaR9J",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:8000/transcribe",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "audio",
+              "inputDataFieldName": "={{ $binary.audio0 }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        224,
+        -112
+      ],
+      "id": "88ae1dd3-9852-4bb6-811e-6c50ceb791fe",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json.content.parts[0].text;\nconst cleaned = raw.replace(/```json|```/g, \"\").trim();\nconst parsed = JSON.parse(cleaned);\n\nreturn [{ json: parsed }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        848,
+        -112
+      ],
+      "id": "3b6b0210-857a-4cf0-8cbe-f2176e8b38a9",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "pinData": {
+    "HTTP Request": [
+      {
+        "json": {
+          "text": "Allume la lumiaire du salon.",
+          "language": "fr"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "efd654be-3ca3-46cc-8f74-5d7fa3f47a2b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "33d3118021c86740b1a15c617d0d9d55d063df19d7374e00a1b8953c3734f20d"
+  },
+  "id": "Fl2dg3L5i5Ip1YLZ",
+  "tags": []
+}
