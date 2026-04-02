@@ -527,8 +527,8 @@ Le disque est actuellement à 87% de capacité. Le projet nécessite ~1 GB suppl
 ### Installation logicielle
 
 - [x] Installer Python 3.10+, pip, et les dépendances Python
-- [ ] Télécharger le modèle Whisper `small` (premier lancement automatique)
-- [ ] Installer le SDK Flutter sur Debian (via snap ou installation manuelle)
+- [x] Télécharger le modèle Whisper `small` (premier lancement automatique)
+- [x] Installer le SDK Flutter sur Debian (via snap ou installation manuelle)
 - [x] Installer les dépendances Flutter pour Linux Desktop si nécessaire (`sudo apt install libgtk-3-dev libblkid-dev liblzma-dev`)
 - [x] Installer n8n (via npm ou Docker)
 - [ ] Installer Ollama et télécharger le modèle llama3 (si LLM local)
