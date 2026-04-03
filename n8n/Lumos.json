@@ -7,8 +7,7 @@
         "path": "start",
         "options": {
           "allowedOrigins": "*",
-          "binaryPropertyName": "audio",
-          "responseData": "ok"
+          "binaryPropertyName": "audio"
         }
       },
       "type": "n8n-nodes-base.webhook",
@@ -84,7 +83,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const raw = $input.first().json.content.parts[0].text;\nconst cleaned = raw.replace(/```json|```/g, \"\").trim();\nconst parsed = JSON.parse(cleaned);\n\nreturn [{ json: parsed }];"
+        "jsCode": "const raw = $input.first().json.content.parts[0].text;\n\nconst cleaned = raw\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .replace(/`/g, \"\")\n  .trim();\n\nconst parsed = JSON.parse(cleaned);\n\nif (Array.isArray(parsed)) {\n  return parsed.map(item => ({ json: item }));\n} else {\n  return [{ json: parsed }];\n}"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -96,16 +95,7 @@
       "name": "Code in JavaScript"
     }
   ],
-  "pinData": {
-    "HTTP Request": [
-      {
-        "json": {
-          "text": "Allume la lumiaire du salon.",
-          "language": "fr"
-        }
-      }
-    ]
-  },
+  "pinData": {},
   "connections": {
     "Webhook": {
       "main": [
@@ -146,7 +136,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "efd654be-3ca3-46cc-8f74-5d7fa3f47a2b",
+  "versionId": "68f73fc4-9760-4e7b-b5e6-07eff4c43d78",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "33d3118021c86740b1a15c617d0d9d55d063df19d7374e00a1b8953c3734f20d"
