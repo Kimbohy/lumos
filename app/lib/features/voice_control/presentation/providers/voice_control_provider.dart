@@ -82,10 +82,10 @@ class VoiceControlProvider extends ChangeNotifier {
     if (_recordingDuration < AppConstants.minRecordingDurationMs) {
       Logger.warning('Recording too short', 'VoiceControlProvider');
       await cancelRecording();
-      _state = VoiceControlState.error;
-      _errorMessage =
-          'Recording too short. Please hold for at least 0.5 seconds.';
-      notifyListeners();
+      Logger.info(
+        'Short tap ignored, keeping provider in idle state',
+        'VoiceControlProvider',
+      );
       return;
     }
 

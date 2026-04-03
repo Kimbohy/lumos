@@ -90,7 +90,7 @@ class StatusIndicator extends StatelessWidget {
       case VoiceControlState.error:
         return 'Error';
       default:
-        return 'Ready';
+        return 'Hold button to talk';
     }
   }
 

@@ -21,12 +21,29 @@ class VoiceCommandResponseModel {
     // Handle different response formats from n8n/Flask
     final dynamic successValue = json['success'];
     final String? status = json['status']?.toString().toLowerCase();
+    final String? message = json['message']?.toString().toLowerCase();
+
+    final bool hasExplicitFailure =
+        (successValue is bool && !successValue) ||
+        status == 'error' ||
+        status == 'failed' ||
+        status == 'failure' ||
+        json['error'] != null;
+
+    final bool hasAsyncAckMessage =
+        message != null &&
+        (message.contains('workflow was started') ||
+            message.contains('workflow started') ||
+            message.contains('accepted') ||
+            message.contains('queued'));
 
     final bool isSuccess =
-        (successValue is bool && successValue) ||
-        status == 'executed' ||
-        status == 'ok' ||
-        (json['error'] == null && json['room'] != null);
+        !hasExplicitFailure &&
+        ((successValue is bool && successValue) ||
+            status == 'executed' ||
+            status == 'ok' ||
+            (json['room'] != null && json['action'] != null) ||
+            hasAsyncAckMessage);
 
     return VoiceCommandResponseModel(
       transcription: json['transcription'] as String?,
