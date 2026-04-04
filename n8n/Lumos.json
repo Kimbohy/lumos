@@ -5,6 +5,7 @@
       "parameters": {
         "httpMethod": "POST",
         "path": "start",
+        "responseMode": "responseNode",
         "options": {
           "allowedOrigins": "*",
           "binaryPropertyName": "audio"
@@ -12,49 +13,26 @@
       },
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "position": [
-        0,
-        0
-      ],
+      "position": [0, 0],
       "id": "ca0b83a3-67fc-468d-bb60-a054e36df584",
       "name": "Webhook",
       "webhookId": "27458c7c-ccb4-4f09-bf5a-1c276615ca4e",
       "onError": "continueErrorOutput"
     },
+
     {
       "parameters": {
-        "modelId": {
-          "__rl": true,
-          "value": "models/gemini-2.5-flash",
-          "mode": "list",
-          "cachedResultName": "models/gemini-2.5-flash"
-        },
-        "messages": {
-          "values": [
-            {
-              "content": "=Tu es un assistant domotique. Analyse cette commande vocale et retourne UNIQUEMENT un objet JSON valide, sans markdown, sans explication.\\n\\nPièces disponibles et leurs identifiants :\\n- salon (pin 2)\\n- cuisine (pin 6)\\n- chambre_paul (pin 8)\\n- chambre_principale (pin 13)\\n\\nActions possibles : on, off\\n\\nFormat de réponse attendu :\\n{\\\"room\\\": \\\"identifiant_piece\\\", \\\"action\\\": \\\"on\\\" ou \\\"off\\\", \\\"pin\\\": numero_pin}\\n\\nSi la commande est incompréhensible ou ne concerne pas une lumière, retourne :\\n{\\\"error\\\": \\\"commande non reconnue\\\"}\\n\\nCommande vocale : {{ $json.text }}"
-            }
-          ]
-        },
-        "jsonOutput": true,
-        "builtInTools": {},
-        "options": {}
+        "respondWith": "json",
+        "responseBody": "{\"status\": \"error\", \"code\": \"INVALID_REQUEST\", \"message\": \"Requête invalide ou fichier audio manquant\"}",
+        "options": { "responseCode": 400 }
       },
-      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [
-        496,
-        -112
-      ],
-      "id": "d9e04136-7e58-4b8b-91f9-293d0abdeacc",
-      "name": "Message a model",
-      "credentials": {
-        "googlePalmApi": {
-          "id": "HUiFA50bNXhRaR9J",
-          "name": "Google Gemini(PaLM) Api account"
-        }
-      }
+      "position": [0, 240],
+      "id": "a1b2c3d4-0001-0001-0001-000000000001",
+      "name": "Webhook Error"
     },
+
     {
       "parameters": {
         "method": "POST",
@@ -66,71 +44,146 @@
             {
               "parameterType": "formBinaryData",
               "name": "audio",
-              "inputDataFieldName": "={{ $binary.audio0 }}"
+              "inputDataFieldName": "audio"
             }
           ]
         },
-        "options": {}
+        "options": {
+          "timeout": 30000
+        }
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
-      "position": [
-        224,
-        -112
-      ],
+      "position": [280, 0],
       "id": "88ae1dd3-9852-4bb6-811e-6c50ceb791fe",
-      "name": "HTTP Request"
+      "name": "Whisper Transcription",
+      "onError": "continueErrorOutput"
     },
+
     {
       "parameters": {
-        "jsCode": "const raw = $input.first().json.content.parts[0].text;\n\nconst cleaned = raw\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .replace(/`/g, \"\")\n  .trim();\n\nconst parsed = JSON.parse(cleaned);\n\nif (Array.isArray(parsed)) {\n  return parsed.map(item => ({ json: item }));\n} else {\n  return [{ json: parsed }];\n}"
+        "respondWith": "json",
+        "responseBody": "{\"status\": \"error\", \"code\": \"WHISPER_OFFLINE\", \"message\": \"Service de transcription indisponible. Vérifiez que le serveur Whisper tourne sur le port 8000.\"}",
+        "options": { "responseCode": 503 }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [280, 240],
+      "id": "a1b2c3d4-0001-0001-0001-000000000002",
+      "name": "Whisper Error"
+    },
+
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Tu es un assistant domotique. Analyse cette commande vocale et retourne UNIQUEMENT un tableau JSON valide, sans markdown, sans explication, sans backticks.\n\nPièces disponibles :\n- salon (pin 2)\n- cuisine (pin 6)\n- chambre_paul (pin 8)\n- chambre_principale (pin 13)\n\nActions possibles : on, off\n\nRègle importante : retourne TOUJOURS un tableau, même pour une seule action.\n\nExemples de réponses attendues :\n\"allume le salon\" -> [{\"room\": \"salon\", \"action\": \"on\", \"pin\": 2}]\n\"éteins tout\" -> [{\"room\": \"salon\", \"action\": \"off\", \"pin\": 2}, {\"room\": \"cuisine\", \"action\": \"off\", \"pin\": 6}, {\"room\": \"chambre_paul\", \"action\": \"off\", \"pin\": 8}, {\"room\": \"chambre_principale\", \"action\": \"off\", \"pin\": 13}]\n\"allume la chambre de paul et le salon\" -> [{\"room\": \"chambre_paul\", \"action\": \"on\", \"pin\": 8}, {\"room\": \"salon\", \"action\": \"on\", \"pin\": 2}]\n\nSi la commande est incompréhensible ou ne concerne pas une lumière :\n[{\"error\": \"commande non reconnue\"}]\n\nCommande vocale : {{ $json.text }}"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [560, 0],
+      "id": "d9e04136-7e58-4b8b-91f9-293d0abdeacc",
+      "name": "Gemini LLM",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "HUiFA50bNXhRaR9J",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\"status\": \"error\", \"code\": \"LLM_ERROR\", \"message\": \"Erreur lors de l'interprétation de la commande. Vérifiez votre clé API Gemini.\"}",
+        "options": { "responseCode": 502 }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [560, 240],
+      "id": "a1b2c3d4-0001-0001-0001-000000000003",
+      "name": "Gemini Error"
+    },
+
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\n\n// Gemini jsonOutput:true retourne directement l'objet/tableau\n// mais on gère aussi le cas string au cas où\nlet parsed;\nif (typeof data === 'string') {\n  const cleaned = data\n    .replace(/```json/g, '')\n    .replace(/```/g, '')\n    .replace(/`/g, '')\n    .trim();\n  parsed = JSON.parse(cleaned);\n} else {\n  parsed = data;\n}\n\n// Normaliser en tableau\nconst commands = Array.isArray(parsed) ? parsed : [parsed];\n\n// Récupérer la transcription depuis le node Whisper\nconst transcription = $('Whisper Transcription').first().json.text || '';\n\n// Vérifier si Gemini a retourné une erreur\nif (commands.length === 1 && commands[0].error) {\n  return [{\n    json: {\n      status: 'error',\n      code: 'COMMAND_NOT_RECOGNIZED',\n      message: 'Commande non reconnue : ' + commands[0].error,\n      transcription: transcription\n    }\n  }];\n}\n\n// Succès\nreturn [{\n  json: {\n    status: 'success',\n    transcription: transcription,\n    commands: commands\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        848,
-        -112
-      ],
+      "position": [840, 0],
       "id": "3b6b0210-857a-4cf0-8cbe-f2176e8b38a9",
-      "name": "Code in JavaScript"
+      "name": "Parse Commands",
+      "onError": "continueErrorOutput"
+    },
+
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\"status\": \"error\", \"code\": \"PARSE_ERROR\", \"message\": \"Impossible de parser la réponse du LLM.\"}",
+        "options": { "responseCode": 500 }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [840, 240],
+      "id": "a1b2c3d4-0001-0001-0001-000000000004",
+      "name": "Parse Error"
+    },
+
+    {
+      "parameters": {
+        "respondWith": "firstIncomingItem",
+        "options": { "responseCode": 200 }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1120, 0],
+      "id": "a1b2c3d4-0001-0001-0001-000000000005",
+      "name": "Success Response"
     }
   ],
-  "pinData": {},
+
   "connections": {
     "Webhook": {
       "main": [
-        [
-          {
-            "node": "HTTP Request",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{ "node": "Whisper Transcription", "type": "main", "index": 0 }],
+        [{ "node": "Webhook Error", "type": "main", "index": 0 }]
       ]
     },
-    "HTTP Request": {
+    "Whisper Transcription": {
       "main": [
-        [
-          {
-            "node": "Message a model",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{ "node": "Gemini LLM", "type": "main", "index": 0 }],
+        [{ "node": "Whisper Error", "type": "main", "index": 0 }]
       ]
     },
-    "Message a model": {
+    "Gemini LLM": {
       "main": [
-        [
-          {
-            "node": "Code in JavaScript",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{ "node": "Parse Commands", "type": "main", "index": 0 }],
+        [{ "node": "Gemini Error", "type": "main", "index": 0 }]
+      ]
+    },
+    "Parse Commands": {
+      "main": [
+        [{ "node": "Success Response", "type": "main", "index": 0 }],
+        [{ "node": "Parse Error", "type": "main", "index": 0 }]
       ]
     }
   },
+
   "active": false,
   "settings": {
     "executionOrder": "v1",

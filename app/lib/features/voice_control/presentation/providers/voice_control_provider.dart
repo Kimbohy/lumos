@@ -4,6 +4,7 @@ import '../../domain/entities/voice_command_result.dart';
 import '../../domain/usecases/record_and_send_command.dart';
 import '../../domain/usecases/stop_recording.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/errors/exceptions.dart';
 import '../../../../core/utils/logger.dart';
 
 enum VoiceControlState { idle, recording, processing, success, error }
@@ -200,10 +201,15 @@ class VoiceControlProvider extends ChangeNotifier {
   }
 
   String _formatErrorMessage(Object error) {
+    if (error is AppException) {
+      return error.message;
+    }
+
     final errorStr = error.toString();
-    // Remove exception class name prefix
-    if (errorStr.contains(':')) {
-      return errorStr.split(':').last.trim();
+    // Remove only the first "TypeException:" prefix if present.
+    final separatorIndex = errorStr.indexOf(':');
+    if (separatorIndex != -1) {
+      return errorStr.substring(separatorIndex + 1).trim();
     }
     return errorStr;
   }

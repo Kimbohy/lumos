@@ -21,14 +21,16 @@ class VoiceCommandResponseModel {
     // Handle different response formats from n8n/Flask
     final dynamic successValue = json['success'];
     final String? status = json['status']?.toString().toLowerCase();
-    final String? message = json['message']?.toString().toLowerCase();
+    final String? rawMessage = json['message']?.toString();
+    final String? message = rawMessage?.toLowerCase();
+    final String? error = json['error']?.toString();
 
     final bool hasExplicitFailure =
         (successValue is bool && !successValue) ||
         status == 'error' ||
         status == 'failed' ||
         status == 'failure' ||
-        json['error'] != null;
+        error != null;
 
     final bool hasAsyncAckMessage =
         message != null &&
@@ -40,17 +42,19 @@ class VoiceCommandResponseModel {
     final bool isSuccess =
         !hasExplicitFailure &&
         ((successValue is bool && successValue) ||
+            status == 'success' ||
             status == 'executed' ||
             status == 'ok' ||
             (json['room'] != null && json['action'] != null) ||
+            json['commands'] != null ||
             hasAsyncAckMessage);
 
     return VoiceCommandResponseModel(
-      transcription: json['transcription'] as String?,
-      room: json['room'] as String?,
-      action: json['action'] as String?,
-      message: json['message'] as String?,
-      error: json['error'] as String?,
+      transcription: json['transcription']?.toString(),
+      room: json['room']?.toString(),
+      action: json['action']?.toString(),
+      message: rawMessage,
+      error: error,
       success: isSuccess,
     );
   }

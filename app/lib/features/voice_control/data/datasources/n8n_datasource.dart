@@ -100,10 +100,24 @@ class N8nDatasource {
         );
       } else if (e.response != null) {
         final statusCode = e.response!.statusCode;
-        final message = e.response!.data?.toString() ?? 'Unknown error';
+        final dynamic responseData = e.response!.data;
+
+        String message = 'Unknown error';
+        String? backendCode;
+
+        if (responseData is Map<String, dynamic>) {
+          message =
+              responseData['message']?.toString() ??
+              responseData['error']?.toString() ??
+              responseData.toString();
+          backendCode = responseData['code']?.toString();
+        } else if (responseData != null) {
+          message = responseData.toString();
+        }
+
         throw ServerException(
           'Server error ($statusCode): $message',
-          statusCode.toString(),
+          backendCode ?? statusCode.toString(),
         );
       } else {
         throw NetworkException('Network error: ${e.message}');
